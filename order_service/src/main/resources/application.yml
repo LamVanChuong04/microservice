@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: tracking_order
+  datasource:
+    url: ${DBMS_CONNECTION:jdbc:mysql://localhost:3306/order_service}
+    username: ${DBMS_USERNAME:root}
+    password: ${DBMS_PASSWORD:250104}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database: mysql
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format-sql: true
+    show-sql: true
+#  kafka:
+#    bootstrap-server: localhost:9092
+#    producer:
+#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
