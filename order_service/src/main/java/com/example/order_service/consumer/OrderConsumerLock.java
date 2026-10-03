@@ -1,0 +1,24 @@
+package com.example.order_service.consumer;
+
+import com.example.order_service.consumer.dto.OrderDto;
+import com.example.order_service.service.OrderService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
+
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class OrderConsumerLock {
+    private final OrderService service;
+    private final ObjectMapper mapper;
+    @KafkaListener(topics = "product_locked", groupId = "order-service")
+    public void handleProductLock(OrderDto order) {
+
+        log.info("Received OrderDto: {}", order);
+        service.updateOrderStatus(order.getOrderId());
+    }
+
+}

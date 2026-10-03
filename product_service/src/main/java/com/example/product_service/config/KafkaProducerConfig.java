@@ -1,4 +1,4 @@
-package com.example.order_service.config;
+package com.example.product_service.config;
 
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.context.annotation.Bean;
@@ -24,7 +24,8 @@ public class KafkaProducerConfig {
         props.put(org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
                 JacksonJsonSerializer.class);
         // Producer side
-        props.put(JacksonJsonSerializer.TYPE_MAPPINGS, "created_order:com.example.order_service.events.OrderCreatedEvent");
+        props.put(JacksonJsonSerializer.TYPE_MAPPINGS, "product_locked:com.example.product_service.events.OrderDto"
+        );
         return props;
     }
 

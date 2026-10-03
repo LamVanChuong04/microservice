@@ -29,7 +29,8 @@ public class KafkaConsumerConfig {
        props.put("spring.deserializer.key.delegate.class", StringDeserializer.class);
        props.put("spring.deserializer.value.delegate.class", JacksonJsonDeserializer.class);
        props.put(JacksonJsonDeserializer.TRUSTED_PACKAGES, "*");
-       props.put(JacksonJsonDeserializer.TYPE_MAPPINGS, "created_order:com.example.product_service.consumer.dto.Order");
+       props.put(JacksonJsonDeserializer.TYPE_MAPPINGS, "created_order:com.example.product_service.consumer.dto.OrderCreatedEvent"
+               );
        return props;
     }
 

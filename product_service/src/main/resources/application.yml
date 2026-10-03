@@ -16,6 +16,17 @@ spring:
         format-sql: true
     show-sql: true
 
+  cache:
+    type: redis
+    redis:
+      time-to-live: 60000
+
+  logging:
+    level:
+      org.springframwork.cache: trace
+      com.github.benmanes.caffeine: debug
+      org.springframwork.data.redis: debug
+
 #  kafka:
 #    bootstrap-servers: localhost:9092
 #    consumer:

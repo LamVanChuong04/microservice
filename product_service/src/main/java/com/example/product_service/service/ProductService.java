@@ -11,4 +11,6 @@ public interface ProductService {
     ProductRes create(CreateProductReq req);
     List<ProductRes> search(ProductFilter productFilter);
     void lock(LockProductReq req);
+    void lockForUpdate(LockProductReq req);
+    void distributeLock(LockProductReq req);
 }

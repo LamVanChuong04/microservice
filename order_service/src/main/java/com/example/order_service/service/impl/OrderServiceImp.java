@@ -11,6 +11,7 @@ import com.example.order_service.entity.OrderEntity;
 import com.example.order_service.entity.OrderItemEntity;
 import com.example.order_service.enums.PaymentStatus;
 import com.example.order_service.enums.StatusOrder;
+import com.example.order_service.events.OrderCreatedEvent;
 import com.example.order_service.exception.BusinessException;
 import com.example.order_service.mapper.OrderMapper;
 import com.example.order_service.repository.OrderItemRepository;
@@ -18,6 +19,7 @@ import com.example.order_service.repository.OrderRepository;
 import com.example.order_service.service.OrderService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +31,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrderServiceImp implements OrderService {
     private final OrderMapper orderMapper;
     private final OrderRepository repo;
@@ -92,9 +95,25 @@ public class OrderServiceImp implements OrderService {
 
         itemRepo.saveAll(orderItems);
         OrderEntity orderEntity = repo.save(order);
+
         // lock product
-        productClient.lockProduct(new LockProductReq(items));
-        kafkaTemplate.send("created_order", orderMapper.fromOrderEntity(orderEntity));
+        //productClient.lockProduct(new LockProductReq(items));
+
+
+        OrderCreatedEvent orderCreatedEvent = orderMapper.toEvent(orderEntity);
+        orderCreatedEvent.setOrderItems(items);
+        kafkaTemplate.send("created_order", orderCreatedEvent);
+
+        log.info("Published new order event to kafka");
         return orderMapper.fromOrderEntity(orderEntity);
+    }
+
+    @Override
+    @Transactional
+    public void updateOrderStatus(String orderId) {
+        OrderEntity order = repo.findById(orderId).orElseThrow(() -> new BusinessException("Order not found"));
+        order.setStatus(StatusOrder.CREATED);
+        log.info("Updated order status to {}", order.getStatus());
+        repo.save(order);
     }
 }

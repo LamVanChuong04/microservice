@@ -12,25 +12,25 @@ services:
 #    networks:
 #      - keycloak-network
 
-#  redis:
-#    image: redis:7.0-alpine
-#    container_name: mpm-handover-redis
-#    ports:
-#      - "6379:6379"
-#    volumes:
-#      - redis-data:/data
-#    command: redis-server --appendonly yes
-#
-#  # UI để quản lý Redis
-#  redis-insight:
-#    image: redislabs/redisinsight:1.14.0
-#    container_name: redis-insight-ui
-#    ports:
-#      - "8001:8001"
-#    volumes:
-#      - redis-insight-data:/data
-#    depends_on:
-#      - redis
+  redis:
+    image: redis:7.0-alpine
+    container_name: mpm-handover-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+
+  # UI để quản lý Redis
+  redis-insight:
+    image: redislabs/redisinsight:1.14.0
+    container_name: redis-insight-ui
+    ports:
+      - "8001:8001"
+    volumes:
+      - redis-insight-data:/data
+    depends_on:
+      - redis
 
   zookeeper:
     container_name: mpm-handover-zookeeper
