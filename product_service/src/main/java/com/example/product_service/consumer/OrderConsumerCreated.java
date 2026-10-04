@@ -11,7 +11,10 @@ import org.springframework.kafka.annotation.BackOff;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,20 +25,22 @@ import java.util.List;
 public class OrderConsumerCreated {
     private final ProductService productService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final ObjectMapper mapper;
 
-
-    @KafkaListener(topics = "created_order", groupId = "product_service")
+    @KafkaListener(topics = "order_created", groupId = "product_service")
     @RetryableTopic(attempts = "4",
             backOff = @BackOff(delay = 2000, multiplier = 2),
             include = {NullPointerException.class, IllegalArgumentException.class, RuntimeException.class})
-    public void handleOrderCreatedEvent(OrderCreatedEvent orderCreatedEvent) {
+    public void handleOrderCreatedEvent(String orderCreatedEvent) {
+        log.info("Received Order Created Event: {}", orderCreatedEvent);
+        OrderCreatedEvent event = mapper.readValue(orderCreatedEvent, OrderCreatedEvent.class);
         log.info("Received Order Created Event: {}", orderCreatedEvent);
 //        if(orderCreatedEvent != null) {
 //            throw new RuntimeException("failed");
 //        }
         List<LockProductItem> lockProductItems = new ArrayList<>();
 
-        orderCreatedEvent.getOrderItems().forEach(orderItem -> {
+        event.getOrderItems().forEach(orderItem -> {
             LockProductItem lockProductItem = new LockProductItem();
             lockProductItem.setProductId(orderItem.getProductId());
             lockProductItem.setQuantity(orderItem.getQuantity());
@@ -47,12 +52,13 @@ public class OrderConsumerCreated {
 
         // lock product
         productService.distributeLock(lockProductReq);
-        log.info("success to lock product item of {}", orderCreatedEvent.getId());
+        log.info("success to lock product item of {}", event.getId());
 
         // NEW --> PREPARED / LOCKED
         // publish message to: product_locked  (message: order_id)
         // order_service update order status
-        kafkaTemplate.send("product_locked", new OrderDto(orderCreatedEvent.getId()));
-        log.info("sent message with order-id: {}", orderCreatedEvent.getId());
+        kafkaTemplate.send("product_locked", new OrderDto(event.getId()));
+        log.info("sent message with order-id: {}", event.getId());
     }
+
 }

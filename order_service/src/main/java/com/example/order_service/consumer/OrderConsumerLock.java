@@ -15,8 +15,8 @@ public class OrderConsumerLock {
     private final OrderService service;
     private final ObjectMapper mapper;
     @KafkaListener(topics = "product_locked", groupId = "order-service")
-    public void handleProductLock(OrderDto order) {
-
+    public void handleProductLock(String orderDto) {
+        OrderDto order = mapper.readValue(orderDto, OrderDto.class);
         log.info("Received OrderDto: {}", order);
         service.updateOrderStatus(order.getOrderId());
     }

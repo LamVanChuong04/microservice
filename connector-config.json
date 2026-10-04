@@ -1,0 +1,34 @@
+{
+  "name": "order-outbox",
+  "config": {
+    "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+    "tasks.max": "1",
+    "database.hostname": "host.docker.internal",
+    "database.port": "3306",
+    "database.user": "root",
+    "database.password": "250104",
+    "database.server.id": "184054",
+    "database.include.list": "order_service",
+    "table.include.list": "order_service.outbox_event",
+    "topic.prefix": "order",
+    "transforms": "outbox",
+    "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+    "transforms.outbox.route.by.field": "aggregate_type",
+    "transforms.outbox.route.topic.replacement": "${routedByValue}.events",
+    "transforms.outbox.table.field.event.id": "id",
+    "transforms.outbox.table.field.event.key": "aggregate_id",
+    "transforms.outbox.table.field.event.payload": "payload",
+    "transforms.outbox.table.field.event.timestamp": "created_at",
+    "transforms.outbox.table.fields.additional.placement": "event_type:header:eventType",
+
+    "transforms.outbox.table.field.event.payload.encoding": "json",
+    "transforms.outbox.table.field.event.payload.format": "json",
+
+    "schema.history.internal.kafka.bootstrap.servers": "kafka:29092",
+    "schema.history.internal.kafka.topic": "schema-changes.order_service",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false"
+  }
+}

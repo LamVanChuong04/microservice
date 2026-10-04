@@ -1,7 +1,6 @@
 package com.example.order_service.service.impl;
 
 import com.example.order_service.client.ProductClient;
-import com.example.order_service.dto.client.LockProductReq;
 import com.example.order_service.dto.client.ProductDto;
 import com.example.order_service.dto.req.CreateOrderReq;
 import com.example.order_service.dto.req.OrderItemReq;
@@ -22,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -38,6 +38,7 @@ public class OrderServiceImp implements OrderService {
     private final OrderItemRepository itemRepo;
     private final ProductClient productClient;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional
@@ -60,7 +61,7 @@ public class OrderServiceImp implements OrderService {
         order.setAmount(amount);
         order.setPaymentMethod(req.getPaymentMethod());
         order.setStatus(StatusOrder.PENDING);
-        order.setPaymentStatus(PaymentStatus.SUCCESS);
+        order.setPaymentStatus(PaymentStatus.PENDING);
 
         OrderEntity savedOrder = repo.save(order);
         // list order item
@@ -79,6 +80,10 @@ public class OrderServiceImp implements OrderService {
             orderItem.setOrder(order);
 
             // validate
+            if(item.getQuantity() == null || item.getQuantity() == 0) {
+                throw new BusinessException("Quantity not set");
+            }
+
             if(item.getQuantity() > product.getQuantityInStock()) {
                 throw new BusinessException("Product "+ item.getProductId() +" not enough quantity");
             }
@@ -105,6 +110,7 @@ public class OrderServiceImp implements OrderService {
         kafkaTemplate.send("created_order", orderCreatedEvent);
 
         log.info("Published new order event to kafka");
+
         return orderMapper.fromOrderEntity(orderEntity);
     }
 
@@ -116,4 +122,6 @@ public class OrderServiceImp implements OrderService {
         log.info("Updated order status to {}", order.getStatus());
         repo.save(order);
     }
+
+
 }

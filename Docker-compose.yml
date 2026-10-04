@@ -128,6 +128,19 @@ services:
 #      - elasticsearch
 #    ports:
 #      - "5601:5601"
+  debezium:
+    image: quay.io/debezium/connect:2.7
+    container_name: debezium
+    depends_on:
+      - kafka
+    ports:
+      - "9999:8083"
+    environment:
+      BOOTSTRAP_SERVERS: kafka:29092
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: connect-configs
+      OFFSET_STORAGE_TOPIC: connect-offsets
+      STATUS_STORAGE_TOPIC: connect-status
 
 volumes:
   mysql-data:

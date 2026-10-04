@@ -14,8 +14,16 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect
         format-sql: true
     show-sql: true
-#  kafka:
-#    bootstrap-server: localhost:9092
-#    producer:
-#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-#      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+    consumer:
+      group-id: order-service
+      auto-offset-reset: earliest
+      key-deserialize: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserialize: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"

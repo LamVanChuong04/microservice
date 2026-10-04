@@ -19,6 +19,7 @@ import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ public class ProductServiceImp implements ProductService {
     private final ProductMapper mapper;
     private final CategoryRepository categoryRepo;
     private final RedissonClient redissonClient;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @Override
     @Transactional
@@ -71,7 +73,7 @@ public class ProductServiceImp implements ProductService {
         });
         repo.saveAll(products);
     }
-
+    //@CacheEvict(allEntries = true, value = "product") // khi data update se delete cache nay di
     @Override
     @Transactional
     public void lockForUpdate(LockProductReq req) {
@@ -93,7 +95,6 @@ public class ProductServiceImp implements ProductService {
 
     @Override
     @Transactional
-    //@CacheEvict(allEntries = true, value = "product") // khi data update se delete cache nay di
     public void distributeLock(LockProductReq req) {
         // get product item from order request
         List<LockProductItem> items = req.getItems();

@@ -10,7 +10,6 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString(callSuper = true)
 public class OrderCreatedEvent extends Order {
     private List<OrderItem> orderItems;
 

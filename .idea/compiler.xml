@@ -12,8 +12,8 @@
         </processorPath>
         <module name="order_service.test" />
         <module name="product_service.test" />
-        <module name="product_service.main" />
         <module name="order_service.main" />
+        <module name="product_service.main" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
