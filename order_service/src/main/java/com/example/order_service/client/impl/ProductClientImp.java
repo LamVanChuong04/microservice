@@ -19,15 +19,14 @@ public class ProductClientImp implements ProductClient {
 
     @Override
     public List<ProductDto> getProductByIds(ProductFilter filter) {
-        WebClient.Builder webClientBuilder = WebClient.builder();
-        BaseResponse<List<ProductDto>> response = webClientBuilder.build()
-                .post()
-                .uri("http://localhost:8081/api/v1/products/search")
+        BaseResponse<List<ProductDto>> response = webClient.build()
+                .post()// goi api bang post
+                .uri("http://product-service/api/v1/products/search")
                 .bodyValue(filter)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<BaseResponse<List<ProductDto>>>() {
+                .retrieve()// thuc hien req nhan res
+                .bodyToMono(new ParameterizedTypeReference<BaseResponse<List<ProductDto>>>() { // parse response về kiểu
                 })
-                .block();
+                .block();// chuyen mono sang dong bo va cho kq tra ve
         if (response == null && response.getData() == null) {
             throw new BusinessException("Khong tim thay san pham.");
         }
@@ -39,7 +38,7 @@ public class ProductClientImp implements ProductClient {
         WebClient.Builder webClientBuilder = WebClient.builder();
         BaseResponse<Boolean> response = webClientBuilder.build()
                 .put()
-                .uri("http://localhost:8081/api/v1/products/lock")
+                .uri("http://product-service/api/v1/products/lock")
                 .bodyValue(req)
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<BaseResponse<Boolean>>() {

@@ -8,6 +8,7 @@ import com.example.order_service.dto.req.ProductFilter;
 import com.example.order_service.dto.res.OrderRes;
 import com.example.order_service.entity.OrderEntity;
 import com.example.order_service.entity.OrderItemEntity;
+import com.example.order_service.entity.OutboxEvent;
 import com.example.order_service.enums.PaymentStatus;
 import com.example.order_service.enums.StatusOrder;
 import com.example.order_service.events.OrderCreatedEvent;
@@ -15,6 +16,7 @@ import com.example.order_service.exception.BusinessException;
 import com.example.order_service.mapper.OrderMapper;
 import com.example.order_service.repository.OrderItemRepository;
 import com.example.order_service.repository.OrderRepository;
+import com.example.order_service.repository.OutboxEventRepository;
 import com.example.order_service.service.OrderService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,14 +42,36 @@ public class OrderServiceImp implements OrderService {
     private final ProductClient productClient;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ObjectMapper objectMapper;
+    private final OutboxEventRepository outboxRepo;
+
+
+//## sync place order
+//1. order validate
+//2. order validate thong tin co ban orderItem (quantity, product_id) call product-service
+//3. lock quantity của sản phẩm (cụ thể: stock - quantity) => gọi qua product-service
+//4. save Order
+
+
+//## async place order
+//1. validate order
+//2. call product-service to validate
+//3. publish event (message kafka) => order_created
+//4. product-service consume message kafka -> block product
+//5. product-service publish message kafka -> produc_locked
+//6. order-service consume message kafka (product_locked) => chuyen trang thai order
+
+
 
     @Override
     @Transactional
     public OrderRes create(CreateOrderReq req) {
+        // get list product id from created order
         List<String> ids = req.getItems().stream().map(OrderItemReq::getProductId)
                 .distinct()
                 .toList();
 
+        // call product service qua webClient
+        // get product with ids
         List<ProductDto> products = productClient.getProductByIds(new ProductFilter(ids));
 
         Map<String, ProductDto> map = new HashMap<>();
@@ -67,7 +92,9 @@ public class OrderServiceImp implements OrderService {
         // list order item
         List<OrderItemEntity> orderItems = new ArrayList<>();
 
+        // get list item from input
         List<OrderItemReq> items = req.getItems();
+
         for(OrderItemReq item : items) {
             // get(key) -> value
             ProductDto product = map.get(item.getProductId());
@@ -101,23 +128,34 @@ public class OrderServiceImp implements OrderService {
         itemRepo.saveAll(orderItems);
         OrderEntity orderEntity = repo.save(order);
 
+        // 1. sync: call product service qua webclient to lock product
         // lock product
         //productClient.lockProduct(new LockProductReq(items));
 
-
+        // 2. async: create message and publish to kafka
         OrderCreatedEvent orderCreatedEvent = orderMapper.toEvent(orderEntity);
         orderCreatedEvent.setOrderItems(items);
-        kafkaTemplate.send("created_order", orderCreatedEvent);
+//        kafkaTemplate.send("order_created", orderCreatedEvent);
 
-        log.info("Published new order event to kafka");
+        // 3. use debezium (change data capture)
+        OutboxEvent outboxEvent = new OutboxEvent();
+        outboxEvent.setPayload(objectMapper.writeValueAsString(orderCreatedEvent));
+        outboxEvent.setEventType("OrderCreated");
+        outboxEvent.setAggregateId(orderEntity.getId());
+        outboxEvent.setAggregateType("order");
+        outboxEvent.setCreatedAt(LocalDateTime.now());
+        outboxRepo.save(outboxEvent);
+        log.info("Order Created Event: {}", outboxEvent);
 
+        //log.info("Published new order event to kafka");
         return orderMapper.fromOrderEntity(orderEntity);
     }
 
     @Override
     @Transactional
     public void updateOrderStatus(String orderId) {
-        OrderEntity order = repo.findById(orderId).orElseThrow(() -> new BusinessException("Order not found"));
+        OrderEntity order = repo.findById(orderId)
+                .orElseThrow(() -> new BusinessException("Order not found"));
         order.setStatus(StatusOrder.CREATED);
         log.info("Updated order status to {}", order.getStatus());
         repo.save(order);

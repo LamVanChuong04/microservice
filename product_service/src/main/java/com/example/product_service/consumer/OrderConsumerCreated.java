@@ -27,12 +27,12 @@ public class OrderConsumerCreated {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ObjectMapper mapper;
 
-    @KafkaListener(topics = "order_created", groupId = "product_service")
+
+    @KafkaListener(topics = "order.events", groupId = "product_service")
     @RetryableTopic(attempts = "4",
             backOff = @BackOff(delay = 2000, multiplier = 2),
-            include = {NullPointerException.class, IllegalArgumentException.class, RuntimeException.class})
+            exclude = {NullPointerException.class, IllegalArgumentException.class})
     public void handleOrderCreatedEvent(String orderCreatedEvent) {
-        log.info("Received Order Created Event: {}", orderCreatedEvent);
         OrderCreatedEvent event = mapper.readValue(orderCreatedEvent, OrderCreatedEvent.class);
         log.info("Received Order Created Event: {}", orderCreatedEvent);
 //        if(orderCreatedEvent != null) {
@@ -51,7 +51,14 @@ public class OrderConsumerCreated {
         lockProductReq.setItems(lockProductItems);
 
         // lock product
-        productService.distributeLock(lockProductReq);
+        // 1. No lock
+        // productService.lock(lockProductReq);
+
+        // 2. pessimistic lock: select ... for update
+        // productService.lockForUpdate(lockProductReq);
+
+        // 3. distributed lock (redis)
+        productService.distributedLock(lockProductReq);
         log.info("success to lock product item of {}", event.getId());
 
         // NEW --> PREPARED / LOCKED

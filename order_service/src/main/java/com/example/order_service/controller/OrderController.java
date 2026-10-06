@@ -20,6 +20,6 @@ public class OrderController {
 
     @PostMapping()
     public ResponseEntity<BaseResponse<OrderRes>> placeOrder(@RequestBody CreateOrderReq req) {
-        return new ResponseEntity<>(BaseResponse.ofSuccess(service.create1(req)), HttpStatus.CREATED);
+        return new ResponseEntity<>(BaseResponse.ofSuccess(service.create(req)), HttpStatus.CREATED);
     }
 }

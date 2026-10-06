@@ -1,16 +1,16 @@
 version: '3.0'
 services:
-#  mysql-vti:
-#    image: mysql:8.0
-#    ports:
-#      - "3306:3306"
-#    environment:
-#      MYSQL_DATABASE: "testing_system"
-#      MYSQL_ROOT_PASSWORD: "123456789"
-#    volumes:
-#      - mysql-data:/var/lib/mysql
-#    networks:
-#      - keycloak-network
+  mysql-vti:
+    image: mysql:8.0
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: "keycloak"
+      MYSQL_ROOT_PASSWORD: "123456789"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - keycloak-network
 
   redis:
     image: redis:7.0-alpine
@@ -64,27 +64,28 @@ services:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
-#  vti-keycloak:
-#    image: quay.io/keycloak/keycloak:22.0.5
-#    container_name: vti-keycloak
-#    environment:
-#      KC_DB: mysql
-#      KC_DB_URL_HOST: mysql-vti
-#      KC_DB_URL_PORT: 3306
-#      KC_DB_URL_DATABASE: keycloak
-#      KC_DB_USERNAME: root
-#      KC_DB_PASSWORD: 123456789
-#      KC_HOSTNAME: localhost
-#      KEYCLOAK_ADMIN: admin
-#      KEYCLOAK_ADMIN_PASSWORD: password
-#
-#    command: start-dev
-#    ports:
-#      - "8080:8080"
-#    depends_on:
-#      - mysql-vti
-#    networks:
-#      - keycloak-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:22.0.5
+    container_name: keycloak
+    environment:
+      KC_DB: mysql
+      KC_DB_URL_HOST: mysql-vti
+      KC_DB_URL_PORT: 3306
+      KC_DB_URL_DATABASE: keycloak
+      KC_DB_USERNAME: root
+      KC_DB_PASSWORD: 123456789
+      KC_HOSTNAME: localhost
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: password
+
+    command: start-dev
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql-vti
+    networks:
+      - keycloak-network
 #  elasticsearch:
 #    container_name: vti-elasticsearch
 #    image: elasticsearch:7.17.10

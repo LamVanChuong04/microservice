@@ -14,6 +14,7 @@ import tools.jackson.databind.ObjectMapper;
 public class OrderConsumerLock {
     private final OrderService service;
     private final ObjectMapper mapper;
+
     @KafkaListener(topics = "product_locked", groupId = "order-service")
     public void handleProductLock(String orderDto) {
         OrderDto order = mapper.readValue(orderDto, OrderDto.class);

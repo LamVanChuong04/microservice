@@ -50,12 +50,14 @@ public class ProductServiceImp implements ProductService {
     }
 
     @Override
-    @Cacheable(value = "products", key = "#productFilter.ids", condition = "#productFilter != null")
+    //@Cacheable(value = "products", key = "#productFilter.ids", condition = "#productFilter != null")
     public List<ProductRes> search(ProductFilter productFilter) {
         List<ProductEntity> products = repo.findAllByIds(productFilter.getIds());
         return products.stream().map(mapper::fromProductEntity).collect(Collectors.toList());
     }
 
+
+    // 1. no lock
     @Override
     @Transactional
     public void lock(LockProductReq req) {
@@ -73,7 +75,8 @@ public class ProductServiceImp implements ProductService {
         });
         repo.saveAll(products);
     }
-    //@CacheEvict(allEntries = true, value = "product") // khi data update se delete cache nay di
+
+    // 2. pessimistic lock
     @Override
     @Transactional
     public void lockForUpdate(LockProductReq req) {
@@ -93,23 +96,24 @@ public class ProductServiceImp implements ProductService {
         repo.saveAll(products);
     }
 
+    // distributed lock
     @Override
     @Transactional
-    public void distributeLock(LockProductReq req) {
+    public void distributedLock(LockProductReq req) {
         // get product item from order request
         List<LockProductItem> items = req.getItems();
 
-        // instance 1: => update product:1,2
-        // instance 2: => update product:2,1
+        // instance 1: => update product:1,2 -> key: product:1,2
+        // instance 2: => update product:2,1 -> key: product:2,1
 
-        // 1. Tạo khóa dựa trên ds item sắp xếp theo thứ tự
-        // sort prevent deadlock
+        // 1. Tạo khóa dựa trên ds item id sắp xếp theo thứ tự
         List<String> sortIds = items.stream()
                 .map(LockProductItem::getProductId)
                 .sorted()
                 .collect(Collectors.toList());
 
         String lockKey = "lock:products:" + String.join(",", sortIds);
+
         RLock lock = redissonClient.getLock(lockKey);
 
         try{
@@ -118,8 +122,10 @@ public class ProductServiceImp implements ProductService {
             {
                 Thread.sleep(4000);
                 log.info("acquired redis lock for {}", lockKey);
+
                 var productQuantityMap = items.stream()
                         .collect(Collectors.toMap(LockProductItem::getProductId, LockProductItem::getQuantity));
+
                 // 3. Khong dung select .. for update
                 List<ProductEntity> products = repo.findAllByIds(new ArrayList<>(productQuantityMap.keySet()));
 
@@ -135,6 +141,7 @@ public class ProductServiceImp implements ProductService {
                     }
                     product.setQuantityInStock(remainStock);
                 });
+
                 // 5. Save xuong db
                 repo.saveAll(products);
             }
@@ -143,6 +150,7 @@ public class ProductServiceImp implements ProductService {
             Thread.currentThread().interrupt();
         }
         finally {
+            // 6. unlock
             lock.unlock();
         }
     }
