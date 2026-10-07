@@ -9,6 +9,7 @@
         <option value="$PROJECT_DIR$/noti_service/pom.xml" />
         <option value="$PROJECT_DIR$/discover_server/pom.xml" />
         <option value="$PROJECT_DIR$/api_gateway/pom.xml" />
+        <option value="$PROJECT_DIR$/auth-service/pom.xml" />
       </list>
     </option>
     <option name="ignoredFiles">

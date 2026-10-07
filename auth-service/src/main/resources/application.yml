@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: auth-service
+
+keycloak:
+  auth-server-url: http://localhost:8080
+  realm: demo-realm
+  resource: backend
+  credentials:
+    secret: 'dLih8cpZY36HHwcgTSpuwkPxCVaiCF0d'
+server:
+  port: 8765
