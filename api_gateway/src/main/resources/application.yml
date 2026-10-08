@@ -13,8 +13,15 @@ spring:
           predicates:
             - Path=/api/v1/products/**
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/demo-realm # nơi cấp phát
+          jwk-set-uri: http://localhost:8080/realms/demo-realm/protocol/openid-connect/certs # lấy public key verify
+
 server:
-  port: 8080
+  port: 8181
 eureka:
   client:
     service-url:

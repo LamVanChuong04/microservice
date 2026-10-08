@@ -1,6 +1,8 @@
 package com.example.authservice.controller;
 
+import com.example.authservice.dto.req.LoginReq;
 import com.example.authservice.dto.req.UserRegisterReq;
+import com.example.authservice.dto.res.LoginRes;
 import com.example.authservice.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -25,4 +27,8 @@ public class AuthController {
     }
 
     // get token
+    @PostMapping("/login")
+    public ResponseEntity<LoginRes> login(@RequestBody LoginReq req) {
+        return ResponseEntity.ok().body(userService.login(req));
+    }
 }
