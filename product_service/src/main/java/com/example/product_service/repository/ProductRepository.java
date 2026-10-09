@@ -14,5 +14,5 @@ public interface ProductRepository extends JpaRepository<ProductEntity,String> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from ProductEntity p where p.id in :ids")
-    List<ProductEntity> findAllById(List<String> ids);
+    List<ProductEntity> findAllByIdsForUpdate(List<String> ids);
 }

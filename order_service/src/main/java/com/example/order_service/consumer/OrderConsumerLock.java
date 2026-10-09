@@ -1,6 +1,7 @@
 package com.example.order_service.consumer;
 
 import com.example.order_service.consumer.dto.OrderDto;
+import com.example.order_service.enums.StatusOrder;
 import com.example.order_service.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +20,14 @@ public class OrderConsumerLock {
     public void handleProductLock(String orderDto) {
         OrderDto order = mapper.readValue(orderDto, OrderDto.class);
         log.info("Received OrderDto: {}", order);
-        service.updateOrderStatus(order.getOrderId());
+        service.updateOrderStatus(order.getOrderId(), StatusOrder.CREATED);
+    }
+
+    @KafkaListener(topics = "product_outof_stock", groupId = "order-service")
+    public void handleProductOutOfStock(String orderDto) {
+        OrderDto order = mapper.readValue(orderDto, OrderDto.class);
+        log.info("Received OrderDto With Product Out Of Stock: {}", order);
+        service.updateOrderStatus(order.getOrderId(), StatusOrder.CANCELED);
     }
 
 }

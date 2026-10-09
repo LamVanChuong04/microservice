@@ -71,6 +71,9 @@ public class ProductServiceImp implements ProductService {
             throw new BusinessException("Product Not Found");
         }
         products.forEach(product -> {
+            if (product.getQuantityInStock() < map.get(product.getId())) {
+                throw new BusinessException("Out of Stock");
+            }
             product.setQuantityInStock(product.getQuantityInStock() - map.get(product.getId()));
         });
         repo.saveAll(products);
@@ -85,12 +88,15 @@ public class ProductServiceImp implements ProductService {
                 .collect(Collectors.toMap(LockProductItem::getProductId, LockProductItem::getQuantity));
 
         // pessimistic lock => select ... for update
-        List<ProductEntity> products = repo.findAllById(new ArrayList<>(map.keySet()));
+        List<ProductEntity> products = repo.findAllByIdsForUpdate(new ArrayList<>(map.keySet()));
 
         if (products.isEmpty()) {
             throw new BusinessException("Product Not Found");
         }
         products.forEach(product -> {
+            if (product.getQuantityInStock() < map.get(product.getId())) {
+                throw new BusinessException("Out of Stock");
+            }
             product.setQuantityInStock(product.getQuantityInStock() - map.get(product.getId()));
         });
         repo.saveAll(products);
@@ -120,7 +126,7 @@ public class ProductServiceImp implements ProductService {
             // 2. Thử lấy lock trong 10s, hold trong 5s
             if(lock.tryLock(10, 5, TimeUnit.SECONDS))
             {
-                Thread.sleep(4000);
+                //Thread.sleep(4000);
                 log.info("acquired redis lock for {}", lockKey);
 
                 var productQuantityMap = items.stream()

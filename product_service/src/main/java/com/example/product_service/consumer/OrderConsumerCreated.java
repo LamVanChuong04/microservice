@@ -29,9 +29,9 @@ public class OrderConsumerCreated {
 
 
     @KafkaListener(topics = "order.events", groupId = "product_service")
-    @RetryableTopic(attempts = "4",
-            backOff = @BackOff(delay = 2000, multiplier = 2),
-            exclude = {NullPointerException.class, IllegalArgumentException.class})
+//    @RetryableTopic(attempts = "4",
+//            backOff = @BackOff(delay = 2000, multiplier = 2),
+//            exclude = {NullPointerException.class, IllegalArgumentException.class})
     public void handleOrderCreatedEvent(String orderCreatedEvent) {
         OrderCreatedEvent event = mapper.readValue(orderCreatedEvent, OrderCreatedEvent.class);
         log.info("Received Order Created Event: {}", orderCreatedEvent);
@@ -57,15 +57,21 @@ public class OrderConsumerCreated {
         // 2. pessimistic lock: select ... for update
         // productService.lockForUpdate(lockProductReq);
 
-        // 3. distributed lock (redis)
-        productService.distributedLock(lockProductReq);
-        log.info("success to lock product item of {}", event.getId());
+        try{
+            // 3. distributed lock (redis)
+            productService.distributedLock(lockProductReq);
 
-        // NEW --> PREPARED / LOCKED
-        // publish message to: product_locked  (message: order_id)
-        // order_service update order status
-        kafkaTemplate.send("product_locked", new OrderDto(event.getId()));
-        log.info("sent message with order-id: {}", event.getId());
+            log.info("success to lock product item of {}", event.getId());
+
+            // NEW --> PREPARED / LOCKED
+            // publish message to: product_locked  (message: order_id)
+            // order_service update order status
+            kafkaTemplate.send("product_locked", new OrderDto(event.getId()));
+            log.info("sent message with order-id: {}", event.getId());
+        }catch(Exception e){
+            kafkaTemplate.send("product_outof_stock", new OrderDto(event.getId()));
+            log.info("sent message with order-id: {}", event.getId());
+        }
     }
 
 }

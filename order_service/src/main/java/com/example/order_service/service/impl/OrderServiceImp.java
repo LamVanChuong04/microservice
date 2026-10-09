@@ -60,8 +60,6 @@ public class OrderServiceImp implements OrderService {
 //5. product-service publish message kafka -> produc_locked
 //6. order-service consume message kafka (product_locked) => chuyen trang thai order
 
-
-
     @Override
     @Transactional
     public OrderRes create(CreateOrderReq req) {
@@ -73,12 +71,13 @@ public class OrderServiceImp implements OrderService {
         // call product service qua webClient
         // get product with ids
         List<ProductDto> products = productClient.getProductByIds(new ProductFilter(ids));
+        log.info("Get list product from product service: [{}]", products);
 
         Map<String, ProductDto> map = new HashMap<>();
         products.forEach(product -> {
             map.put(product.getId(), product);
         });
-
+        log.info("Create order");
         OrderEntity order = new OrderEntity();
         order.setCustomerId(req.getCustomerId());
 
@@ -137,7 +136,7 @@ public class OrderServiceImp implements OrderService {
         orderCreatedEvent.setOrderItems(items);
 //        kafkaTemplate.send("order_created", orderCreatedEvent);
 
-        // 3. use debezium (change data capture)
+        // 3. outbox pattern: use debezium (change data capture)
         OutboxEvent outboxEvent = new OutboxEvent();
         outboxEvent.setPayload(objectMapper.writeValueAsString(orderCreatedEvent));
         outboxEvent.setEventType("OrderCreated");
@@ -153,10 +152,10 @@ public class OrderServiceImp implements OrderService {
 
     @Override
     @Transactional
-    public void updateOrderStatus(String orderId) {
+    public void updateOrderStatus(String orderId, StatusOrder status) {
         OrderEntity order = repo.findById(orderId)
                 .orElseThrow(() -> new BusinessException("Order not found"));
-        order.setStatus(StatusOrder.CREATED);
+        order.setStatus(status);
         log.info("Updated order status to {}", order.getStatus());
         repo.save(order);
     }
