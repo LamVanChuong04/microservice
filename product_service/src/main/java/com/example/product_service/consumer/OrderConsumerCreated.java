@@ -59,7 +59,8 @@ public class OrderConsumerCreated {
 
         try{
             // 3. distributed lock (redis)
-            productService.distributedLock(lockProductReq);
+            //productService.distributedLock(lockProductReq);
+            productService.lock(lockProductReq);
 
             log.info("success to lock product item of {}", event.getId());
 

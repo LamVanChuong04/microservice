@@ -1,9 +1,6 @@
 package com.example.product_service.service.impl;
 
-import com.example.product_service.dto.req.CreateProductReq;
-import com.example.product_service.dto.req.LockProductItem;
-import com.example.product_service.dto.req.LockProductReq;
-import com.example.product_service.dto.req.ProductFilter;
+import com.example.product_service.dto.req.*;
 import com.example.product_service.dto.res.ProductRes;
 import com.example.product_service.entity.CategoryEntity;
 import com.example.product_service.entity.ProductEntity;
@@ -18,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -46,7 +44,8 @@ public class ProductServiceImp implements ProductService {
         ProductEntity entity = mapper.fromProductReq(req);
         entity.setCategory(category);
         repo.save(entity);
-        return mapper.fromProductEntity(entity);
+        ProductRes res = mapper.fromProductEntity(entity);
+        return res;
     }
 
     @Override
@@ -84,10 +83,12 @@ public class ProductServiceImp implements ProductService {
     @Transactional
     public void lockForUpdate(LockProductReq req) {
         List<LockProductItem> items = req.getItems();
+
         Map<String, Integer> map = items.stream()
                 .collect(Collectors.toMap(LockProductItem::getProductId, LockProductItem::getQuantity));
 
         // pessimistic lock => select ... for update
+        // get list product entity from 1 list product id from map
         List<ProductEntity> products = repo.findAllByIdsForUpdate(new ArrayList<>(map.keySet()));
 
         if (products.isEmpty()) {
@@ -138,7 +139,6 @@ public class ProductServiceImp implements ProductService {
                 if (products.isEmpty()) {
                     throw new BusinessException("Product Not Found");
                 }
-
                 // 4. Tinh khau tru ton kho
                 products.forEach(product -> {
                     Integer remainStock = product.getQuantityInStock() - productQuantityMap.get(product.getId());
@@ -160,5 +160,39 @@ public class ProductServiceImp implements ProductService {
             lock.unlock();
         }
     }
+
+    @Override
+    @Cacheable(value = "product_detail", key = "#id")
+    public ProductRes getProduct(String id) {
+        log.info("Query DB");
+        ProductEntity entity = repo.findById(id)
+                .orElseThrow(()-> new BusinessException("Product not found with id = " + id));
+        ProductRes res = mapper.fromProductEntity(entity);
+        return res;
+    }
+
+    @Override
+    @Transactional
+    @CachePut(value = "product_detail", key = "#id")
+    public ProductRes update(String id, CreateProductReq req) {
+        log.info("[CACHE PUT] Đang cập nhật Database & làm mới Redis Cache cho Product ID: {}", id);
+        ProductEntity product = repo.findById(id)
+                .orElseThrow(()-> new BusinessException("Product not found with id = " + id));
+        ProductEntity entity = mapper.update(req, product);
+        repo.save(entity);
+        return mapper.fromProductEntity(entity);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "product_detail", key = "#id", allEntries = true)
+    public void delete(String id) {
+        log.info("[CACHE EVICT] Đang xóa Product ID: {} khỏi Database & xóa key khỏi Redis Cache", id);
+        ProductEntity product = repo.findById(id)
+                .orElseThrow(()-> new BusinessException("Product not found with id = " + id));
+        product.setIsDeleted(true);
+        repo.save(product);
+    }
+
 
 }

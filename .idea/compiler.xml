@@ -19,6 +19,17 @@
         </processorPath>
         <module name="auth-service" />
       </profile>
+      <profile name="Annotation profile for product_service" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/mapstruct/mapstruct-processor/1.6.3/mapstruct-processor-1.6.3.jar" />
+        </processorPath>
+        <module name="product_service" />
+        <module name="order_service" />
+      </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="api_gateway" target="17" />

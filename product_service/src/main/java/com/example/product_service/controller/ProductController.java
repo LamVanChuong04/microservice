@@ -35,4 +35,24 @@ public class ProductController {
         service.lock(product);
         return new ResponseEntity<>(BaseResponse.ofSuccess(true), HttpStatus.OK);
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<BaseResponse<ProductRes>> getProduct(@PathVariable String id)
+    {
+        return new ResponseEntity<>(BaseResponse.ofSuccess(service.getProduct(id)), HttpStatus.OK);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<BaseResponse<ProductRes>> updateProduct(@PathVariable String id,
+                                                                  @RequestBody CreateProductReq req)
+    {
+        return new ResponseEntity<>(BaseResponse.ofSuccess(service.update(id, req)), HttpStatus.ACCEPTED);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<BaseResponse<ProductRes>> delete(@PathVariable String id)
+    {
+        service.delete(id);
+        return new ResponseEntity<>(BaseResponse.ofSuccess("Deleted product sucessfull"), HttpStatus.OK);
+    }
 }

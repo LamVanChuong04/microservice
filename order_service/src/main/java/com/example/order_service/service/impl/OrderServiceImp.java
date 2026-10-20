@@ -1,6 +1,7 @@
 package com.example.order_service.service.impl;
 
 import com.example.order_service.client.ProductClient;
+import com.example.order_service.dto.client.LockProductReq;
 import com.example.order_service.dto.client.ProductDto;
 import com.example.order_service.dto.req.CreateOrderReq;
 import com.example.order_service.dto.req.OrderItemReq;
@@ -63,20 +64,22 @@ public class OrderServiceImp implements OrderService {
     @Override
     @Transactional
     public OrderRes create(CreateOrderReq req) {
-        // get list product id from created order
+        //1. get list product id from order item
         List<String> ids = req.getItems().stream().map(OrderItemReq::getProductId)
                 .distinct()
                 .toList();
 
-        // call product service qua webClient
+        //2. call product service qua webClient
         // get product with ids
         List<ProductDto> products = productClient.getProductByIds(new ProductFilter(ids));
         log.info("Get list product from product service: [{}]", products);
 
+        //3. map từ product -> product dto
         Map<String, ProductDto> map = new HashMap<>();
         products.forEach(product -> {
             map.put(product.getId(), product);
         });
+
         log.info("Create order");
         OrderEntity order = new OrderEntity();
         order.setCustomerId(req.getCustomerId());
@@ -91,7 +94,7 @@ public class OrderServiceImp implements OrderService {
         // list order item
         List<OrderItemEntity> orderItems = new ArrayList<>();
 
-        // get list item from input
+        //4. get list item from input
         List<OrderItemReq> items = req.getItems();
 
         for(OrderItemReq item : items) {
@@ -106,9 +109,6 @@ public class OrderServiceImp implements OrderService {
             orderItem.setOrder(order);
 
             // validate
-            if(item.getQuantity() == null || item.getQuantity() == 0) {
-                throw new BusinessException("Quantity not set");
-            }
 
             if(item.getQuantity() > product.getQuantityInStock()) {
                 throw new BusinessException("Product "+ item.getProductId() +" not enough quantity");
@@ -118,15 +118,17 @@ public class OrderServiceImp implements OrderService {
 
             // logic pricing
             amount = amount.add(product.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+
             orderItems.add(orderItem);
 
         }
         savedOrder.setAmount(amount);
         savedOrder.setOrderItems(orderItems);
-
+        //5. save order entity and order item to db
         itemRepo.saveAll(orderItems);
         OrderEntity orderEntity = repo.save(order);
 
+        //6. call product service  block product
         // 1. sync: call product service qua webclient to lock product
         // lock product
         //productClient.lockProduct(new LockProductReq(items));
@@ -134,7 +136,7 @@ public class OrderServiceImp implements OrderService {
         // 2. async: create message and publish to kafka
         OrderCreatedEvent orderCreatedEvent = orderMapper.toEvent(orderEntity);
         orderCreatedEvent.setOrderItems(items);
-//        kafkaTemplate.send("order_created", orderCreatedEvent);
+        //kafkaTemplate.send("order_created", orderCreatedEvent);
 
         // 3. outbox pattern: use debezium (change data capture)
         OutboxEvent outboxEvent = new OutboxEvent();

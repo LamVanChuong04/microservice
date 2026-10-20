@@ -13,4 +13,7 @@ public interface ProductService {
     void lock(LockProductReq req);
     void lockForUpdate(LockProductReq req);
     void distributedLock(LockProductReq req);
+    ProductRes getProduct(String id);
+    ProductRes update(String id, CreateProductReq req);
+    void delete(String id);
 }
