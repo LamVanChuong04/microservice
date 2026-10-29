@@ -4,6 +4,7 @@ import com.example.order_service.client.ProductClient;
 import com.example.order_service.common.BaseResponse;
 import com.example.order_service.dto.client.LockProductReq;
 import com.example.order_service.dto.client.ProductDto;
+import com.example.order_service.dto.req.OrderItemReq;
 import com.example.order_service.dto.req.ProductFilter;
 import com.example.order_service.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,22 @@ public class ProductClientImp implements ProductClient {
                 .bodyToMono(new ParameterizedTypeReference<BaseResponse<List<ProductDto>>>() { // parse response về kiểu
                 })
                 .block();// chuyen mono sang dong bo va cho kq tra ve
-        if (response == null && response.getData() == null) {
+        if (response == null || response.getData() == null) {
+            throw new BusinessException("Khong tim thay san pham.");
+        }
+        return response.getData();
+    }
+
+    @Override
+    public ProductDto getProductById(String productId) {
+        BaseResponse<ProductDto> response = webClient.build()
+                .get()// goi api bang post
+                .uri("http://product-service/api/v1/products/{productId}", productId)
+                .retrieve()// thuc hien req nhan res
+                .bodyToMono(new ParameterizedTypeReference<BaseResponse<ProductDto>>() { // parse response về kiểu
+                })
+                .block();// chuyen mono sang dong bo va cho kq tra ve
+        if (response == null || response.getData() == null) {
             throw new BusinessException("Khong tim thay san pham.");
         }
         return response.getData();
@@ -35,8 +51,7 @@ public class ProductClientImp implements ProductClient {
 
     @Override
     public void lockProduct(LockProductReq req) {
-        WebClient.Builder webClientBuilder = WebClient.builder();
-        BaseResponse<Boolean> response = webClientBuilder.build()
+        BaseResponse<Boolean> response = webClient.build()
                 .put()
                 .uri("http://product-service/api/v1/products/lock")
                 .bodyValue(req)

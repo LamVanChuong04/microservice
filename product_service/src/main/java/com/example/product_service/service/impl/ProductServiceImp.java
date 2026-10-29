@@ -121,7 +121,7 @@ public class ProductServiceImp implements ProductService {
 
         String lockKey = "lock:products:" + String.join(",", sortIds);
 
-        RLock lock = redissonClient.getLock(lockKey);
+        RLock lock = redissonClient.getLock(lockKey); // đk lock de chuan bi di vao db
 
         try{
             // 2. Thử lấy lock trong 10s, hold trong 5s

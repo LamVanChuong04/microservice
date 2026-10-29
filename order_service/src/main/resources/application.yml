@@ -14,7 +14,19 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect
         format-sql: true
     show-sql: true
+  data:
+    redis:
+      port: 6379
+      host: localhost
 
+  cache:
+    type: redis
+    redis:
+      time-to-live: 60000
+  logging:
+    level:
+      org.springframwork.cache: trace
+      org.springframwork.data.redis: debug
   kafka:
     bootstrap-servers: localhost:9092
     producer:

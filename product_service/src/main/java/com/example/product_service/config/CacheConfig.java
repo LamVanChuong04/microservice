@@ -9,6 +9,10 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.JacksonJsonRedisSerializer;
+import org.springframework.data.redis.serializer.RedisSerializationContext;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -35,7 +39,14 @@ public class CacheConfig {
                 .build();
     }
 
-
+//    @Bean
+//    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
+//        RedisTemplate<String, Object> template = new RedisTemplate<>();
+//        template.setConnectionFactory(connectionFactory);
+//        template.setKeySerializer(new StringRedisSerializer());
+//        template.setValueSerializer(new JacksonJsonRedisSerializer<>(Object.class));
+//        return template;
+//    }
     // 2 bean cùng kiểu data thì ai danh dau primary se duoc prefer
 
 }

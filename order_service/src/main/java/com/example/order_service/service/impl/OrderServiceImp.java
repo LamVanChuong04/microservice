@@ -22,6 +22,8 @@ import com.example.order_service.service.OrderService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
@@ -128,7 +130,7 @@ public class OrderServiceImp implements OrderService {
         itemRepo.saveAll(orderItems);
         OrderEntity orderEntity = repo.save(order);
 
-        //6. call product service  block product
+        //6. call product service  lock product
         // 1. sync: call product service qua webclient to lock product
         // lock product
         //productClient.lockProduct(new LockProductReq(items));
@@ -136,17 +138,17 @@ public class OrderServiceImp implements OrderService {
         // 2. async: create message and publish to kafka
         OrderCreatedEvent orderCreatedEvent = orderMapper.toEvent(orderEntity);
         orderCreatedEvent.setOrderItems(items);
-        //kafkaTemplate.send("order_created", orderCreatedEvent);
+        kafkaTemplate.send("order_created", orderCreatedEvent);
 
         // 3. outbox pattern: use debezium (change data capture)
-        OutboxEvent outboxEvent = new OutboxEvent();
-        outboxEvent.setPayload(objectMapper.writeValueAsString(orderCreatedEvent));
-        outboxEvent.setEventType("OrderCreated");
-        outboxEvent.setAggregateId(orderEntity.getId());
-        outboxEvent.setAggregateType("order");
-        outboxEvent.setCreatedAt(LocalDateTime.now());
-        outboxRepo.save(outboxEvent);
-        log.info("Order Created Event: {}", outboxEvent);
+//        OutboxEvent outboxEvent = new OutboxEvent();
+//        outboxEvent.setPayload(objectMapper.writeValueAsString(orderCreatedEvent));
+//        outboxEvent.setEventType("OrderCreated");
+//        outboxEvent.setAggregateId(orderEntity.getId());
+//        outboxEvent.setAggregateType("order");
+//        outboxEvent.setCreatedAt(LocalDateTime.now());
+//        outboxRepo.save(outboxEvent);
+//        log.info("Order Created Event: {}", outboxEvent);
 
         //log.info("Published new order event to kafka");
         return orderMapper.fromOrderEntity(orderEntity);
@@ -162,5 +164,17 @@ public class OrderServiceImp implements OrderService {
         repo.save(order);
     }
 
+    @Override
+    public OrderRes getOrderById(String id) {
+        OrderEntity order = repo.findById(id)
+                .orElseThrow(()-> new BusinessException("Product not found with id = " + id));
+        return orderMapper.fromOrderEntity(order);
+    }
+
+    @Override
+    public Page<OrderRes> getAllOrder(Pageable pageable) {
+        Page<OrderEntity> orders = repo.findAll(pageable);
+        return orders.map((order)-> orderMapper.fromOrderEntity(order));
+    }
 
 }

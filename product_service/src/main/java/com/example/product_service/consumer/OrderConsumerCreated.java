@@ -28,7 +28,7 @@ public class OrderConsumerCreated {
     private final ObjectMapper mapper;
 
 
-    @KafkaListener(topics = "order.events", groupId = "product_service")
+    @KafkaListener(topics = "order_created", groupId = "product_service")
 //    @RetryableTopic(attempts = "4",
 //            backOff = @BackOff(delay = 2000, multiplier = 2),
 //            exclude = {NullPointerException.class, IllegalArgumentException.class})
@@ -52,15 +52,14 @@ public class OrderConsumerCreated {
 
         // lock product
         // 1. No lock
-        // productService.lock(lockProductReq);
+        //productService.lock(lockProductReq);
 
         // 2. pessimistic lock: select ... for update
-        // productService.lockForUpdate(lockProductReq);
+        //productService.lockForUpdate(lockProductReq);
 
         try{
             // 3. distributed lock (redis)
-            //productService.distributedLock(lockProductReq);
-            productService.lock(lockProductReq);
+            productService.distributedLock(lockProductReq);
 
             log.info("success to lock product item of {}", event.getId());
 
