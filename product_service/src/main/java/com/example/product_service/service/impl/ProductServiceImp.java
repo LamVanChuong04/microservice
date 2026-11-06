@@ -9,6 +9,9 @@ import com.example.product_service.mapper.ProductMapper;
 import com.example.product_service.repository.CategoryRepository;
 import com.example.product_service.repository.ProductRepository;
 import com.example.product_service.service.ProductService;
+import com.example.product_service.service.RedisService;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,12 +20,17 @@ import org.redisson.api.RedissonClient;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -34,7 +42,9 @@ public class ProductServiceImp implements ProductService {
     private final ProductMapper mapper;
     private final CategoryRepository categoryRepo;
     private final RedissonClient redissonClient;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final RedisService redisService;
+    private final ObjectMapper objectMapper;
+    private final Cache<String, Object> caffeineCache;
 
     @Override
     @Transactional
@@ -78,7 +88,7 @@ public class ProductServiceImp implements ProductService {
         repo.saveAll(products);
     }
 
-    // 2. pessimistic lock
+    // 2. permistic lock
     @Override
     @Transactional
     public void lockForUpdate(LockProductReq req) {
@@ -87,7 +97,7 @@ public class ProductServiceImp implements ProductService {
         Map<String, Integer> map = items.stream()
                 .collect(Collectors.toMap(LockProductItem::getProductId, LockProductItem::getQuantity));
 
-        // pessimistic lock => select ... for update
+        // permistic lock => select ... for update
         // get list product entity from 1 list product id from map
         List<ProductEntity> products = repo.findAllByIdsForUpdate(new ArrayList<>(map.keySet()));
 
@@ -161,19 +171,95 @@ public class ProductServiceImp implements ProductService {
         }
     }
 
+//    @Override
+//    @Cacheable(value = "product_detail", key = "#id")
+//    public ProductRes getProduct(String id) {
+//        log.info("Query DB");
+//        ProductEntity entity = repo.findById(id)
+//                .orElseThrow(()-> new BusinessException("Product not found with id = " + id));
+//        ProductRes res = mapper.fromProductEntity(entity);
+//        return res;
+//    }
     @Override
-    @Cacheable(value = "product_detail", key = "#id")
-    public ProductRes getProduct(String id) {
-        log.info("Query DB");
-        ProductEntity entity = repo.findById(id)
-                .orElseThrow(()-> new BusinessException("Product not found with id = " + id));
-        ProductRes res = mapper.fromProductEntity(entity);
-        return res;
+    public ProductRes getProductDetail(String id) {
+        if(id == null) return null;
+
+        // L1: Get data in local cache
+        Object obj = caffeineCache.getIfPresent(id);
+        if(obj != null)
+        {
+            ProductRes res = objectMapper.convertValue(obj, ProductRes.class);
+            log.info("L1: cache hit: product_id:{}", id);
+            return res;
+        }
+
+        // L2: Get data in redis
+        String key = "product_detail:" + id;
+        Object ob = redisService.get(key);
+        if (ob != null)
+        {
+            log.info("L2: cache hit: key: {}", key);
+            ProductRes res = objectMapper.convertValue(ob, ProductRes.class);
+            caffeineCache.put(id, res);
+            return res;
+        }
+        // get data from db and set local cache
+        ProductRes product = getProductDatabase(id);
+        if(product != null)
+        {
+            caffeineCache.put(id, product);
+        }
+
+        return product;
     }
+    // get data in database
+    // cache stempede/hot key
+    @Override
+    public ProductRes getProductDatabase(String id) {
+        String lockKey = "product:lock:" + id;
+        String key = "product_detail:" + id;
+        RLock lock = redissonClient.getLock(lockKey);
+        boolean acquired = false;
+        try {
+            acquired = lock.tryLock(1, 3, TimeUnit.SECONDS);
+
+            if(!acquired) return null;
+            else
+            {
+                log.info("acquired redis lock for {}", lockKey);
+                // get cache: double check
+                Object ob = redisService.get(key);
+                if (ob != null)
+                {
+                    ProductRes res = objectMapper.convertValue(ob, ProductRes.class);
+                    return res;
+                }
+                // cache miss
+                ProductEntity product = repo.findById(id)
+                        .orElseThrow(()-> new BusinessException("NOT FOUND PRODUCT"));
+                ProductRes res = mapper.fromProductEntity(product);
+                // set redis
+                redisService.setWithTtl(key, res, 120, TimeUnit.SECONDS);
+
+                return res;
+            }
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        finally
+        {
+            if (acquired && lock.isHeldByCurrentThread()) {
+                lock.unlock();
+                log.info("Released lock: {}", lockKey);
+            }
+        }
+    }
+
 
     @Override
     @Transactional
-    @CachePut(value = "product_detail", key = "#id")
+    //@CachePut(value = "product_detail", key = "#id")
     public ProductRes update(String id, CreateProductReq req) {
         log.info("[CACHE PUT] Đang cập nhật Database & làm mới Redis Cache cho Product ID: {}", id);
         ProductEntity product = repo.findById(id)
@@ -185,7 +271,7 @@ public class ProductServiceImp implements ProductService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "product_detail", key = "#id", allEntries = true)
+    //@CacheEvict(value = "product_detail", key = "#id", allEntries = true)
     public void delete(String id) {
         log.info("[CACHE EVICT] Đang xóa Product ID: {} khỏi Database & xóa key khỏi Redis Cache", id);
         ProductEntity product = repo.findById(id)
@@ -193,6 +279,14 @@ public class ProductServiceImp implements ProductService {
         product.setIsDeleted(true);
         repo.save(product);
     }
+
+    @Override
+    public Page<ProductRes> getAllProduct(Pageable pageable) {
+        Page<ProductEntity> products =  repo.findAll(pageable);
+        return products.map(mapper::fromProductEntity);
+    }
+
+
 
 
 }

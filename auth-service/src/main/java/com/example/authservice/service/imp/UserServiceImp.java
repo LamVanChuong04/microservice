@@ -3,7 +3,10 @@ package com.example.authservice.service.imp;
 import com.example.authservice.dto.req.LoginReq;
 import com.example.authservice.dto.req.UserRegisterReq;
 import com.example.authservice.dto.res.LoginRes;
+import com.example.authservice.entity.UserEntity;
+import com.example.authservice.repository.UserRepsitory;
 import com.example.authservice.service.UserService;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +32,7 @@ import java.util.Map;
 public class UserServiceImp implements UserService {
     private final Keycloak keycloak;
     private final WebClient.Builder webClient;
+    private final UserRepsitory repo;
 
     @Value("${keycloak.realm}")
     private String realm;
@@ -42,8 +46,45 @@ public class UserServiceImp implements UserService {
     @Value("${keycloak.credentials.secret}")
     private String clientSecret;
 
+//    @Override
+//    @Transactional
+//    public void createUser(UserRegisterReq req) {
+//        UserRepresentation user = new UserRepresentation();
+//        user.setUsername(req.getUsername());
+//        user.setEmail(req.getEmail());
+//        user.setFirstName(req.getFirstName());
+//        user.setLastName(req.getLastName());
+//        user.setEnabled(true);
+//
+//        UserEntity entity = new UserEntity();
+//        entity.setEmail(req.getEmail());
+//        entity.setUsername(req.getUsername());
+//        entity.setPhone(req.getPhone());
+//        entity.setFirstName(req.getFirstName());
+//        entity.setLastName(req.getLastName());
+//        entity.setId(user.getId());
+//        entity.setPassword(req.getPassword());
+//        repo.save(entity);
+//
+//        CredentialRepresentation credential = new CredentialRepresentation();
+//        credential.setTemporary(false);
+//        credential.setType(CredentialRepresentation.PASSWORD);
+//        credential.setValue(req.getPassword());
+//        user.setCredentials(Collections.singletonList(credential));
+//
+//        Response response = keycloak.realm(realm).users().create(user);
+//        if (response.getStatus() != 201) {
+//            String error = response.readEntity(String.class);
+//            log.error("Create user error {}", error);
+//            throw new RuntimeException("Khong the tao user trong keycloak");
+//        }
+//
+//    }
+
     @Override
-    public void createUser(UserRegisterReq req) {
+    @Transactional
+    public String createUser(UserRegisterReq req) {
+        // 1. Tạo user representation cho Keycloak
         UserRepresentation user = new UserRepresentation();
         user.setUsername(req.getUsername());
         user.setEmail(req.getEmail());
@@ -51,20 +92,39 @@ public class UserServiceImp implements UserService {
         user.setLastName(req.getLastName());
         user.setEnabled(true);
 
+        // 2. Thêm credential (password)
         CredentialRepresentation credential = new CredentialRepresentation();
         credential.setTemporary(false);
         credential.setType(CredentialRepresentation.PASSWORD);
         credential.setValue(req.getPassword());
         user.setCredentials(Collections.singletonList(credential));
 
+        // 3. Gọi API Keycloak để tạo user
         Response response = keycloak.realm(realm).users().create(user);
         if (response.getStatus() != 201) {
             String error = response.readEntity(String.class);
             log.error("Create user error {}", error);
-            throw new RuntimeException("Khong the tao user trong keycloak");
+            throw new RuntimeException("Không thể tạo user trong Keycloak");
         }
 
+        // 4. Lấy ID do Keycloak cấp (UUID)
+        String keycloakId = response.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
+        String res = response.getLocation().getPath();
+        // 5. Lưu vào DB với ID từ Keycloak
+        UserEntity entity = new UserEntity();
+        entity.setId(keycloakId); // dùng ID Keycloak làm khóa chính
+        entity.setEmail(req.getEmail());
+        entity.setUsername(req.getUsername());
+        entity.setPhone(req.getPhone());
+        entity.setFirstName(req.getFirstName());
+        entity.setLastName(req.getLastName());
+        entity.setPassword(req.getPassword());
+
+        repo.save(entity);
+
+        return res;
     }
+
 
     @Override
     public LoginRes login(LoginReq req) {

@@ -1,6 +1,7 @@
 package com.example.order_service.consumer;
 
 import com.example.order_service.consumer.dto.OrderDto;
+import com.example.order_service.enums.PaymentStatus;
 import com.example.order_service.enums.StatusOrder;
 import com.example.order_service.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ public class OrderConsumerLock {
     public void handleProductLock(String orderDto) {
         OrderDto order = mapper.readValue(orderDto, OrderDto.class);
         log.info("Received OrderDto: {}", order);
+        service.updatePaymentStatus(order.getOrderId(), PaymentStatus.SUCCESS);
         service.updateOrderStatus(order.getOrderId(), StatusOrder.CREATED);
     }
 
@@ -27,6 +29,7 @@ public class OrderConsumerLock {
     public void handleProductOutOfStock(String orderDto) {
         OrderDto order = mapper.readValue(orderDto, OrderDto.class);
         log.info("Received OrderDto With Product Out Of Stock: {}", order);
+        service.updatePaymentStatus(order.getOrderId(), PaymentStatus.FAILED);
         service.updateOrderStatus(order.getOrderId(), StatusOrder.CANCELED);
     }
 

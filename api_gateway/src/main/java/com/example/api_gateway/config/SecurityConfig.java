@@ -3,6 +3,7 @@ package com.example.api_gateway.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -23,8 +24,26 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeExchange(exchange -> {
-                    exchange.pathMatchers("/api/v1/orders/**").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN");
-                    exchange.pathMatchers("/api/v1/products/**").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN");
+                    //
+                    exchange.pathMatchers(HttpMethod.GET, "/api/v1/orders/**").permitAll();
+                    exchange.pathMatchers(HttpMethod.GET, "/api/v1/category/**").permitAll();
+                    exchange.pathMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll();
+                    exchange.pathMatchers("/api/v1/auth/**").permitAll();
+                    // them, xoa, sua order
+                    exchange.pathMatchers(HttpMethod.GET,"/api/v1/orders").hasAuthority("ROLE_ADMIN");
+                    exchange.pathMatchers(HttpMethod.DELETE, "/api/v1/orders").hasAuthority("ROLE_ADMIN");
+                    exchange.pathMatchers(HttpMethod.POST, "/api/v1/orders").hasAnyAuthority("ROLE_ADMIN", "ROLE_CUSTOMER");
+                    // them, xoa, sua product
+                    exchange.pathMatchers(HttpMethod.POST, "/api/v1/products").hasAuthority("ROLE_ADMIN");
+                    exchange.pathMatchers(HttpMethod.DELETE, "/api/v1/products").hasAuthority("ROLE_ADMIN");
+                    exchange.pathMatchers(HttpMethod.PUT, "/api/v1/products").hasAuthority("ROLE_ADMIN");
+                    // them, xoa, sua category
+                    exchange.pathMatchers(HttpMethod.PUT, "/api/v1/categories").hasAuthority("ROLE_ADMIN");
+                    exchange.pathMatchers(HttpMethod.POST, "/api/v1/categories").hasAuthority("ROLE_ADMIN");
+                    exchange.pathMatchers(HttpMethod.DELETE, "/api/v1/categories").hasAuthority("ROLE_ADMIN");
+
+                    // hasRole -> + prefix (ROLE_)
+                    // hasAuthority -> giữ nguyên
                 })
                 .oauth2ResourceServer(oauth ->
                         oauth

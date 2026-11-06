@@ -65,7 +65,7 @@ public class OrderServiceImp implements OrderService {
 
     @Override
     @Transactional
-    public OrderRes create(CreateOrderReq req) {
+    public OrderRes create(String userId, CreateOrderReq req) {
         //1. get list product id from order item
         List<String> ids = req.getItems().stream().map(OrderItemReq::getProductId)
                 .distinct()
@@ -84,7 +84,7 @@ public class OrderServiceImp implements OrderService {
 
         log.info("Create order");
         OrderEntity order = new OrderEntity();
-        order.setCustomerId(req.getCustomerId());
+        order.setCustomerId(userId);
 
         BigDecimal amount = BigDecimal.ZERO;
         order.setAmount(amount);
@@ -165,6 +165,17 @@ public class OrderServiceImp implements OrderService {
     }
 
     @Override
+    @Transactional
+    public void updatePaymentStatus(String orderId, PaymentStatus status) {
+        OrderEntity order = repo.findById(orderId)
+                .orElseThrow(() -> new BusinessException("Order not found"));
+        order.setPaymentStatus(status);
+        log.info("Updated payment status to {}", order.getStatus());
+        repo.save(order);
+    }
+
+
+    @Override
     public OrderRes getOrderById(String id) {
         OrderEntity order = repo.findById(id)
                 .orElseThrow(()-> new BusinessException("Product not found with id = " + id));
@@ -175,6 +186,21 @@ public class OrderServiceImp implements OrderService {
     public Page<OrderRes> getAllOrder(Pageable pageable) {
         Page<OrderEntity> orders = repo.findAll(pageable);
         return orders.map((order)-> orderMapper.fromOrderEntity(order));
+    }
+
+    @Override
+    public OrderRes getById(String id) {
+        OrderEntity order = repo.findById(id).orElseThrow(()-> new BusinessException("NOT FOUND ORDER"));
+        return orderMapper.fromOrderEntity(order);
+    }
+
+    @Override
+    @Transactional
+    public String delete(String id) {
+        OrderEntity order = repo.findById(id).orElseThrow(()-> new BusinessException("NOT FOUND ORDER"));
+        order.setIsDeleted(true);
+        repo.save(order);
+        return "Deleted order succesful.";
     }
 
 }

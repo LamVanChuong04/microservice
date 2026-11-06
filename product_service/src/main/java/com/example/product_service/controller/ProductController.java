@@ -7,6 +7,10 @@ import com.example.product_service.dto.req.ProductFilter;
 import com.example.product_service.dto.res.ProductRes;
 import com.example.product_service.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -39,7 +43,7 @@ public class ProductController {
     @GetMapping("/{id}")
     public ResponseEntity<BaseResponse<ProductRes>> getProduct(@PathVariable String id)
     {
-        return new ResponseEntity<>(BaseResponse.ofSuccess(service.getProduct(id)), HttpStatus.OK);
+        return new ResponseEntity<>(BaseResponse.ofSuccess(service.getProductDetail(id)), HttpStatus.OK);
     }
 
     @PutMapping("/{id}")
@@ -55,4 +59,22 @@ public class ProductController {
         service.delete(id);
         return new ResponseEntity<>(BaseResponse.ofSuccess("Deleted product sucessfull"), HttpStatus.OK);
     }
+
+    @GetMapping()
+    public ResponseEntity<BaseResponse<List<ProductRes>>> getAll(
+            @RequestParam(value = "pageNumber",  defaultValue = "10", required = false) int pageNumber,
+            @RequestParam(value = "pageSize", defaultValue = "8", required = false) int pageSize,
+            @RequestParam(value = "sortBy", defaultValue = "id",required = false) String sortBy,
+            @RequestParam(value = "sortDir", defaultValue = "productName", required = false) String sortDir)
+    {
+        // dir -> direction: phuong huong
+        Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name())
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
+
+        return new ResponseEntity<>(BaseResponse.ofSuccess(service.getAllProduct(pageable)), HttpStatus.OK);
+    }
+
 }

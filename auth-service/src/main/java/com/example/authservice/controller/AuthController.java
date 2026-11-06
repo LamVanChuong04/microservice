@@ -22,8 +22,8 @@ public class AuthController {
     // dk tai khoan
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody UserRegisterReq req) {
-        userService.createUser(req);
-        return ResponseEntity.ok().body("Register successful");
+
+        return ResponseEntity.ok().body(userService.createUser(req));
     }
 
     // get token

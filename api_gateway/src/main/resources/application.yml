@@ -12,6 +12,20 @@ spring:
           uri: lb://product-service
           predicates:
             - Path=/api/v1/products/**
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/v1/auth/**
+
+  data:
+    redis:
+      port: 6379
+      host: localhost
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 60000
 
   security:
     oauth2:

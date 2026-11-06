@@ -16,23 +16,26 @@ import java.time.Duration;
 
 @Configuration
 public class CacheConfig {
-    @Bean
-    public CacheManager redisCacheManager(RedisConnectionFactory connectionFactory) {
-        var config = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofMinutes(5))
-                .disableCachingNullValues()
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new JacksonJsonRedisSerializer<>(Object.class)));;
-        return RedisCacheManager.builder(connectionFactory)
-                .cacheDefaults(config)
-                .build();
-    }
+//    @Bean
+//    public CacheManager redisCacheManager(RedisConnectionFactory connectionFactory) {
+//        var config = RedisCacheConfiguration.defaultCacheConfig()
+//                .entryTtl(Duration.ofMinutes(5))
+//                .disableCachingNullValues()
+//                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
+//                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new JacksonJsonRedisSerializer<>(Object.class)));;
+//        return RedisCacheManager.builder(connectionFactory)
+//                .cacheDefaults(config)
+//                .build();
+//    }
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
         template.setKeySerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new StringRedisSerializer());
+
         template.setValueSerializer(new JacksonJsonRedisSerializer<>(Object.class));
+        template.setHashValueSerializer(new JacksonJsonRedisSerializer<>(Object.class));
         return template;
     }
 }

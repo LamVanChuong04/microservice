@@ -14,8 +14,8 @@ import java.util.List;
 
 @Data
 public class CreateOrderReq {
-    @NotEmpty(message = "Customer id is not empty" )
-    private String customerId;
+//    @NotEmpty(message = "Customer id is not empty" )
+//    private String customerId;
     private PaymentMethod paymentMethod;
     @Valid
     private List<OrderItemReq> items;

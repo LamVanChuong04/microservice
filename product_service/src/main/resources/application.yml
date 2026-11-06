@@ -21,10 +21,10 @@ spring:
       port: 6379
       host: localhost
 
-  cache:
-    type: redis
-    redis:
-      time-to-live: 60000
+#  cache:
+#    type: redis
+#    redis:
+#      time-to-live: 60000
 
   logging:
     level:

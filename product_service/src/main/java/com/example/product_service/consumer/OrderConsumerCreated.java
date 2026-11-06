@@ -52,9 +52,9 @@ public class OrderConsumerCreated {
 
         // lock product
         // 1. No lock
-        //productService.lock(lockProductReq);
+        productService.lock(lockProductReq);
 
-        // 2. pessimistic lock: select ... for update
+        // 2. permistic lock: select ... for update
         //productService.lockForUpdate(lockProductReq);
 
         try{

@@ -1,5 +1,6 @@
 package com.example.product_service.dto.res;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
@@ -12,6 +13,7 @@ public class ProductRes implements Serializable {
     private String productName;
     @JsonProperty("quantity_in_stock")
     private Integer quantityInStock;
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private BigDecimal price;
     @JsonProperty("category_id")
     private String categoryId;
