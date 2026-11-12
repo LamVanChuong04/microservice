@@ -5,6 +5,6 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class OrderDto {
+public class PaymentSucess {
     private String orderId;
 }
