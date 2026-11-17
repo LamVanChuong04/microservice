@@ -1,5 +1,6 @@
 package com.example.product_service.service.impl;
 
+import com.example.product_service.consumer.dto.OrderItem;
 import com.example.product_service.dto.req.*;
 import com.example.product_service.dto.res.ProductRes;
 import com.example.product_service.entity.CategoryEntity;
@@ -44,7 +45,7 @@ public class ProductServiceImp implements ProductService {
     private final RedissonClient redissonClient;
     private final RedisService redisService;
     private final ObjectMapper objectMapper;
-    private final Cache<String, Object> caffeineCache;
+    //private final Cache<String, Object> caffeineCache;
 
     @Override
     @Transactional
@@ -151,7 +152,11 @@ public class ProductServiceImp implements ProductService {
                 }
                 // 4. Tinh khau tru ton kho
                 products.forEach(product -> {
-                    Integer remainStock = product.getQuantityInStock() - productQuantityMap.get(product.getId());
+                    log.info("1: quantity of stock: {} ", product.getQuantityInStock());
+                    log.info("2: quantity from input: {}", productQuantityMap.get(product.getId()));
+
+                    int remainStock = product.getQuantityInStock() - productQuantityMap.get(product.getId());
+                    log.info("3: remain in stock: {}", remainStock);
                     if (remainStock < 0) {
                         throw new BusinessException("Product " + product.getId() + " out of stock");
                     }
@@ -171,47 +176,47 @@ public class ProductServiceImp implements ProductService {
         }
     }
 
-//    @Override
-//    @Cacheable(value = "product_detail", key = "#id")
-//    public ProductRes getProduct(String id) {
-//        log.info("Query DB");
-//        ProductEntity entity = repo.findById(id)
-//                .orElseThrow(()-> new BusinessException("Product not found with id = " + id));
-//        ProductRes res = mapper.fromProductEntity(entity);
-//        return res;
-//    }
     @Override
-    public ProductRes getProductDetail(String id) {
-        if(id == null) return null;
-
-        // L1: Get data in local cache
-        Object obj = caffeineCache.getIfPresent(id);
-        if(obj != null)
-        {
-            ProductRes res = objectMapper.convertValue(obj, ProductRes.class);
-            log.info("L1: cache hit: product_id:{}", id);
-            return res;
-        }
-
-        // L2: Get data in redis
-        String key = "product_detail:" + id;
-        Object ob = redisService.get(key);
-        if (ob != null)
-        {
-            log.info("L2: cache hit: key: {}", key);
-            ProductRes res = objectMapper.convertValue(ob, ProductRes.class);
-            caffeineCache.put(id, res);
-            return res;
-        }
-        // get data from db and set local cache
-        ProductRes product = getProductDatabase(id);
-        if(product != null)
-        {
-            caffeineCache.put(id, product);
-        }
-
-        return product;
+    @Cacheable(value = "product_detail", key = "#id")
+    public ProductRes getProduct(String id) {
+        log.info("Query DB");
+        ProductEntity entity = repo.findById(id)
+                .orElseThrow(()-> new BusinessException("Product not found with id = " + id));
+        ProductRes res = mapper.fromProductEntity(entity);
+        return res;
     }
+//    @Override
+//    public ProductRes getProductDetail(String id) {
+//        if(id == null) return null;
+//
+//        // L1: Get data in local cache
+//        Object obj = caffeineCache.getIfPresent(id);
+//        if(obj != null)
+//        {
+//            ProductRes res = objectMapper.convertValue(obj, ProductRes.class);
+//            log.info("L1: cache hit: product_id:{}", id);
+//            return res;
+//        }
+//
+//        // L2: Get data in redis
+//        String key = "product_detail:" + id;
+//        Object ob = redisService.get(key);
+//        if (ob != null)
+//        {
+//            log.info("L2: cache hit: key: {}", key);
+//            ProductRes res = objectMapper.convertValue(ob, ProductRes.class);
+//            caffeineCache.put(id, res);
+//            return res;
+//        }
+//        // get data from db and set local cache
+//        ProductRes product = getProductDatabase(id);
+//        if(product != null)
+//        {
+//            caffeineCache.put(id, product);
+//        }
+//
+//        return product;
+//    }
     // get data in database
     // cache stempede/hot key
     @Override
@@ -254,6 +259,28 @@ public class ProductServiceImp implements ProductService {
                 log.info("Released lock: {}", lockKey);
             }
         }
+    }
+
+    @Override
+    @Transactional
+    public void releasedStock(List<OrderItem> items) {
+        var productQuantityMap = items.stream()
+                .collect(Collectors.toMap(OrderItem::getProductId, OrderItem::getQuantity));
+        List<ProductEntity> products = repo.findAllByIds(new ArrayList<>(productQuantityMap.keySet()));
+
+        products.forEach(product -> {
+            log.info("1: quantity of stock: {} ", product.getQuantityInStock());
+            log.info("2: quantity from input: {}", productQuantityMap.get(product.getId()));
+            int temp = product.getQuantityInStock() + productQuantityMap.get(product.getId());
+            log.info("3: temp: {}", temp);
+            product.setQuantityInStock(
+                    temp
+            );
+            log.info("Product id: {} => quantity: {}",
+                    product.getId(),
+                    product.getQuantityInStock());
+        });
+        repo.saveAll(products);
     }
 
 

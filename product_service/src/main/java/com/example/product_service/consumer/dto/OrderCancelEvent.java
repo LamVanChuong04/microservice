@@ -1,16 +1,14 @@
-package com.example.order_service.events;
+package com.example.product_service.consumer.dto;
 
-import com.example.order_service.dto.req.OrderItemReq;
-import com.example.order_service.dto.res.OrderItemRes;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Getter
+@Setter
 public class OrderCancelEvent {
-    private List<OrderItemReq> orderItems;
+    private List<OrderItem> orderItems;
 }

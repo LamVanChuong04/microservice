@@ -1,4 +1,4 @@
-package com.example.product_service.enums;
+package com.example.payment_service.enums;
 
 public enum PaymentMethod {
     COD, VNPAY, MOMO

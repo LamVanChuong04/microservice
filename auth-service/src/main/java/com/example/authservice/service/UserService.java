@@ -5,6 +5,6 @@ import com.example.authservice.dto.req.UserRegisterReq;
 import com.example.authservice.dto.res.LoginRes;
 
 public interface UserService {
-    String createUser(UserRegisterReq req);
+    void createUser(UserRegisterReq req);
     LoginRes login(LoginReq req);
 }

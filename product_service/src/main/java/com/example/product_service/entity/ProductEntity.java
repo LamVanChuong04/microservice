@@ -33,7 +33,7 @@ public class ProductEntity extends BaseEntity implements Serializable {
 
     private BigDecimal price;
 
-    private Integer quantityInStock;
+    private int quantityInStock;
 
 
 }

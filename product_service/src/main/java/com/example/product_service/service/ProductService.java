@@ -1,5 +1,6 @@
 package com.example.product_service.service;
 
+import com.example.product_service.consumer.dto.OrderItem;
 import com.example.product_service.dto.req.CreateProductReq;
 import com.example.product_service.dto.req.LockProductReq;
 import com.example.product_service.dto.req.ProductFilter;
@@ -15,11 +16,14 @@ public interface ProductService {
     void lock(LockProductReq req);
     void lockForUpdate(LockProductReq req);
     void distributedLock(LockProductReq req);
-    ProductRes getProductDetail(String id);
+    //ProductRes getProductDetail(String id);
     ProductRes update(String id, CreateProductReq req);
     void delete(String id);
 
     Page<ProductRes> getAllProduct(Pageable pageable);
 
     ProductRes getProductDatabase(String id);
+
+    void releasedStock(List<OrderItem> items);
+    ProductRes getProduct(String id);
 }

@@ -138,17 +138,17 @@ public class OrderServiceImp implements OrderService {
         // 2. async: create message and publish to kafka
         OrderCreatedEvent orderCreatedEvent = orderMapper.toEvent(orderEntity);
         orderCreatedEvent.setOrderItems(items);
-        kafkaTemplate.send("order_created", orderCreatedEvent);
-
-        // 3. outbox pattern: use debezium (change data capture)
-//        OutboxEvent outboxEvent = new OutboxEvent();
-//        outboxEvent.setPayload(objectMapper.writeValueAsString(orderCreatedEvent));
-//        outboxEvent.setEventType("OrderCreated");
-//        outboxEvent.setAggregateId(orderEntity.getId());
-//        outboxEvent.setAggregateType("order");
-//        outboxEvent.setCreatedAt(LocalDateTime.now());
-//        outboxRepo.save(outboxEvent);
-//        log.info("Order Created Event: {}", outboxEvent);
+////        kafkaTemplate.send("order_created", orderCreatedEvent);
+//
+//        // 3. outbox pattern: use debezium (change data capture)
+        OutboxEvent outboxEvent = new OutboxEvent();
+        outboxEvent.setPayload(objectMapper.writeValueAsString(orderCreatedEvent));
+        outboxEvent.setEventType("OrderCreated");
+        outboxEvent.setAggregateId(orderEntity.getId());
+        outboxEvent.setAggregateType("order");
+        outboxEvent.setCreatedAt(LocalDateTime.now());
+        outboxRepo.save(outboxEvent);
+        log.info("Order Created Event: {}", outboxEvent);
 
         //log.info("Published new order event to kafka");
         return orderMapper.fromOrderEntity(orderEntity);

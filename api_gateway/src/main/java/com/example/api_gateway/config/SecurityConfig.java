@@ -23,31 +23,31 @@ public class SecurityConfig {
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .authorizeExchange(exchange -> {
-                    //
-                    exchange.pathMatchers(HttpMethod.GET, "/api/v1/orders/**").permitAll();
-                    exchange.pathMatchers(HttpMethod.GET, "/api/v1/category/**").permitAll();
-                    exchange.pathMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll();
-                    exchange.pathMatchers("/api/v1/auth/**").permitAll();
+                .authorizeExchange(exchange -> { exchange
+                    // public
+                    .pathMatchers(HttpMethod.GET, "/api/v1/orders/**").permitAll()
+                    .pathMatchers(HttpMethod.GET, "/api/v1/category/**").permitAll()
+                    .pathMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll()
+                    .pathMatchers("/api/v1/auth/**").permitAll()
                     // them, xoa, sua order
-                    exchange.pathMatchers(HttpMethod.GET,"/api/v1/orders").hasAuthority("ROLE_ADMIN");
-                    exchange.pathMatchers(HttpMethod.DELETE, "/api/v1/orders").hasAuthority("ROLE_ADMIN");
-                    exchange.pathMatchers(HttpMethod.POST, "/api/v1/orders").hasAnyAuthority("ROLE_ADMIN", "ROLE_CUSTOMER");
+                    .pathMatchers(HttpMethod.GET,"/api/v1/orders").hasAuthority("ROLE_ADMIN")
+                    .pathMatchers(HttpMethod.DELETE, "/api/v1/orders").hasAuthority("ROLE_ADMIN")
+                    //.pathMatchers(HttpMethod.POST, "/api/v1/orders").hasAnyAuthority("ROLE_ADMIN", "ROLE_CUSTOMER")
                     // them, xoa, sua product
-                    exchange.pathMatchers(HttpMethod.POST, "/api/v1/products").hasAuthority("ROLE_ADMIN");
-                    exchange.pathMatchers(HttpMethod.DELETE, "/api/v1/products").hasAuthority("ROLE_ADMIN");
-                    exchange.pathMatchers(HttpMethod.PUT, "/api/v1/products").hasAuthority("ROLE_ADMIN");
+                    .pathMatchers(HttpMethod.POST, "/api/v1/products").hasAuthority("ROLE_ADMIN")
+                    .pathMatchers(HttpMethod.DELETE, "/api/v1/products").hasAuthority("ROLE_ADMIN")
+                    .pathMatchers(HttpMethod.PUT, "/api/v1/products").hasAuthority("ROLE_ADMIN")
                     // them, xoa, sua category
-                    exchange.pathMatchers(HttpMethod.PUT, "/api/v1/categories").hasAuthority("ROLE_ADMIN");
-                    exchange.pathMatchers(HttpMethod.POST, "/api/v1/categories").hasAuthority("ROLE_ADMIN");
-                    exchange.pathMatchers(HttpMethod.DELETE, "/api/v1/categories").hasAuthority("ROLE_ADMIN");
+                    .pathMatchers(HttpMethod.PUT, "/api/v1/categories").hasAuthority("ROLE_ADMIN")
+                    .pathMatchers(HttpMethod.POST, "/api/v1/categories").hasAuthority("ROLE_ADMIN")
+                    .pathMatchers(HttpMethod.DELETE, "/api/v1/categories").hasAuthority("ROLE_ADMIN")
+                            .anyExchange().authenticated();
 
                     // hasRole -> + prefix (ROLE_)
                     // hasAuthority -> giữ nguyên
                 })
                 .oauth2ResourceServer(oauth ->
-                        oauth
-                                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                        oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                 );
 
         return http.build();

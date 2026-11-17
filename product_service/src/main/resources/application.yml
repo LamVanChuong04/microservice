@@ -31,11 +31,13 @@ spring:
       org.springframwork.cache: trace
       com.github.benmanes.caffeine: debug
       org.springframwork.data.redis: debug
+      org.springframework.transaction: TRACE
+      org.hibernate.transaction: TRACE
 
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
-      group-id: product_service
+      group-id: product-service
       auto-offset-reset: earliest
       key-deserialize: org.apache.kafka.common.serialization.StringDeserializer
       value-deserialize: org.springframework.kafka.support.serializer.JacksonJsonDeserializer

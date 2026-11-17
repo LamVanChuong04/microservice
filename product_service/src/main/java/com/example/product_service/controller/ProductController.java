@@ -36,14 +36,14 @@ public class ProductController {
 
     @PutMapping("/lock")
     public ResponseEntity<BaseResponse<Boolean>> lockProduct(@RequestBody LockProductReq product) {
-        service.lock(product);
+        service.distributedLock(product);
         return new ResponseEntity<>(BaseResponse.ofSuccess(true), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<BaseResponse<ProductRes>> getProduct(@PathVariable String id)
     {
-        return new ResponseEntity<>(BaseResponse.ofSuccess(service.getProductDetail(id)), HttpStatus.OK);
+        return new ResponseEntity<>(BaseResponse.ofSuccess(service.getProduct(id)), HttpStatus.OK);
     }
 
     @PutMapping("/{id}")

@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.util.List;
 @Data
+
 public class LockProductReq {
     private List<LockProductItem> items;
 }
