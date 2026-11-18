@@ -4,7 +4,7 @@ import com.example.product_service.consumer.dto.OrderCreatedEvent;
 import com.example.product_service.dto.req.LockProductItem;
 import com.example.product_service.dto.req.LockProductReq;
 import com.example.product_service.entity.OutboxEvent;
-import com.example.product_service.events.OrderDto;
+import com.example.product_service.events.StockReservedEvent;
 import com.example.product_service.repository.OutboxEventRepository;
 import com.example.product_service.service.ProductService;
 import lombok.RequiredArgsConstructor;
@@ -66,17 +66,18 @@ public class OrderConsumerCreated {
             // NEW --> PREPARED / LOCKED
             // publish message to: product_locked  (message: order_id)
             // order_service update order status
-            OrderDto mess = new OrderDto();
+            StockReservedEvent mess = new StockReservedEvent();
             mess.setOrderId(event.getId());
             mess.setUserId(event.getCustomerId());
             mess.setMethod(event.getPaymentMethod());
             mess.setAmount(event.getAmount());
+            mess.setItems(event.getOrderItems());
 
             OutboxEvent outbox = new OutboxEvent();
             outbox.setCreatedAt(LocalDateTime.now());
             outbox.setPayload(mapper.writeValueAsString(mess));
             outbox.setAggregateId(event.getId());
-            outbox.setEventType("product_locked");
+            outbox.setEventType("stock_reserved_event");
             outbox.setAggregateType("product_locked");
             outboxRepo.save(outbox);
             log.info("Product locked Event: {}", outbox);

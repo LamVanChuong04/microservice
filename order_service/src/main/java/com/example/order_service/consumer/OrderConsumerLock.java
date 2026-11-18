@@ -1,15 +1,13 @@
 package com.example.order_service.consumer;
 
-import com.example.order_service.consumer.dto.PaymentSucess;
+import com.example.order_service.consumer.dto.PaymentSucessEvent;
+import com.example.order_service.consumer.dto.StockReleasedEvent;
 import com.example.order_service.dto.req.OrderItemReq;
-import com.example.order_service.entity.OrderEntity;
 import com.example.order_service.entity.OrderItemEntity;
 import com.example.order_service.enums.PaymentStatus;
 import com.example.order_service.enums.StatusOrder;
 import com.example.order_service.events.OrderCancelEvent;
-import com.example.order_service.exception.BusinessException;
 import com.example.order_service.mapper.OrderItemMapper;
-import com.example.order_service.mapper.OrderMapper;
 import com.example.order_service.producer.OrderEventProducer;
 import com.example.order_service.repository.OrderItemRepository;
 import com.example.order_service.repository.OrderRepository;
@@ -43,27 +41,20 @@ public class OrderConsumerLock {
 //        service.updatePaymentStatus(order.getOrderId(), PaymentStatus.SUCCESS);
 //        service.updateOrderStatus(order.getOrderId(), StatusOrder.CREATED);
 //    }
-    @KafkaListener(topics = "payment_sucess.events", groupId = "order-service")
+    @KafkaListener(topics = "payment_sucess", groupId = "order-service")
     public void handleProductLock(String orderDto) {
-        PaymentSucess order = mapper.readValue(orderDto, PaymentSucess.class);
+        PaymentSucessEvent order = mapper.readValue(orderDto, PaymentSucessEvent.class);
         log.info("Received PaymentSucess: {}", order);
         service.updatePaymentStatus(order.getOrderId(), PaymentStatus.SUCCESS);
         service.updateOrderStatus(order.getOrderId(), StatusOrder.CREATED);
     }
 
-    @KafkaListener(topics = "payment_failed.events", groupId = "order-service")
-    public void handleProductOutOfStock(String orderDto) {
-        PaymentSucess order = mapper.readValue(orderDto, PaymentSucess.class);
-        log.info("Received OrderDto With Product Out Of Stock: {}", order);
-        service.updatePaymentStatus(order.getOrderId(), PaymentStatus.FAILED);
-        service.updateOrderStatus(order.getOrderId(), StatusOrder.CANCELED);
-
-        // tim list items theo order id
-        List<OrderItemEntity> items = itemRepo.findByOrderId(order.getOrderId());
-        List<OrderItemReq> res = items.stream().map(item -> itemMapper.fromEntity(item)).collect(Collectors.toList());
-        OrderCancelEvent event = new OrderCancelEvent();
-        event.setOrderItems(res);
-        producer.handlePaymentFailed(event);
+    @KafkaListener(topics = "stock_released", groupId = "order-service")
+    public void handleProductOutOfStock(String event) {
+        StockReleasedEvent mess = mapper.readValue(event, StockReleasedEvent.class);
+        log.info("Received stock released stock event with order id: {}", mess.getOrderId());
+        service.updatePaymentStatus(mess.getOrderId(), PaymentStatus.FAILED);
+        service.updateOrderStatus(mess.getOrderId(), StatusOrder.CANCELED);
     }
 
 }

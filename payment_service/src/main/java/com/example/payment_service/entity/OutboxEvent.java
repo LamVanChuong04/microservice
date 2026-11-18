@@ -25,4 +25,7 @@ public class OutboxEvent {
     @Column(nullable = false, columnDefinition = "json")
     private String payload;
     private LocalDateTime createdAt;
+
+    private int status;
+    private LocalDateTime publishedAt;
 }

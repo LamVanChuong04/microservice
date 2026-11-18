@@ -1,0 +1,12 @@
+package com.example.payment_service.consumer.dto;
+
+import lombok.Data;
+
+@Data
+public class OrderItem {
+    private String productId;
+    private Integer quantity;
+}
+
+
+

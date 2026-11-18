@@ -1,8 +1,8 @@
 package com.example.product_service.common;
 
 import com.example.product_service.entity.OutboxEvent;
-import com.example.product_service.events.OrderDto;
-import com.example.product_service.repository.OutboxEventRepository;
+import com.example.product_service.events.StockReleasedEvent;
+import com.example.product_service.events.StockReservedEvent;
 import com.example.product_service.service.OutboxEventService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +12,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
-import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -54,15 +53,29 @@ public class ScheduleJob {
     private void publishRowByRow()
     {
         List<OutboxEvent> events = service.findPendingBatch(BATCH_SIZE);
+        log.info("sau query");
         for (OutboxEvent event : events)
         {
+            log.info("sau for");
             try {
-                OrderDto order = mapper.readValue(event.getPayload(), OrderDto.class);
-                template.send("product_locked", order);
-                service.markPublisled(event.getId(), LocalDateTime.now());
+                if("stock_reserved_event".equals(event.getEventType()))
+                {
+                    log.info("stock_reversed_event");
+                    StockReservedEvent order = mapper.readValue(event.getPayload(), StockReservedEvent.class);
+                    template.send("product_locked", order);
+                    service.markPublisled(event.getId(), LocalDateTime.now());
+                }
+                else if ("stock_released_event".equals(event.getEventType()))
+                {
+                    log.info("stock_released_event");
+                    StockReleasedEvent sre = mapper.readValue(event.getPayload(), StockReleasedEvent.class);
+                    template.send("stock_released", sre);
+                    service.markPublisled(event.getId(), LocalDateTime.now());
+                }
 
-                log.debug("OutboxPublisher [row-by-row]: published eventId={} token={}",
-                        event.getId(), event.getAggregateId());
+
+                log.debug("OutboxPublisher [row-by-row]: published eventId={} aggregateType={}",
+                        event.getId(), event.getAggregateType());
             }
             catch (Exception e)
             {
